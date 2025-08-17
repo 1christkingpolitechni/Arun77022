@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Space Research Center</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      height: 100vh;
+      display: flex;
+    }
+
+    .container {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 180px;
+      background-color: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-right: 2px solid #1f3b4d;
+      display: flex;
+      flex-direction: column;
+      padding-top: 40px;
+    }
+
+    .sidebar button {
+      padding: 15px 20px;
+      background: none;
+      border: none;
+      color: #fff;
+      text-align: left;
+      font-weight: bold;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      transition: background 0.3s;
+    }
+
+    .sidebar button:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .header {
+      padding: 20px;
+      text-align: center;
+      background-color: rgba(255, 255, 255, 0.1);
+      font-size: 24px;
+      font-weight: bold;
+      border-bottom: 2px solid #1f3b4d;
+    }
+
+    .content {
+      flex: 1;
+      padding: 30px;
+      position: relative;
+      overflow-y: auto;
+    }
+
+    .floating-btn {
+      position: absolute;
+      background-color: #1e90ff;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      transition: background 0.3s;
+      text-decoration: none;
+    }
+
+    .floating-btn:hover {
+      background-color: #0b78d1;
+    }
+
+    .top-right {
+      top: 30px;
+      right: 30px;
+    }
+
+    .bottom-right {
+      bottom: 30px;
+      right: 30px;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        flex-direction: row;
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 2px solid #1f3b4d;
+      }
+
+      .sidebar button {
+        flex: 1;
+        text-align: center;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: none;
+      }
+
+      .floating-btn {
+        position: fixed;
+        z-index: 10;
+      }
+
+      .top-right {
+        top: 20px;
+        right: 20px;
+      }
+
+      .bottom-right {
+        bottom: 20px;
+        right: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <button onclick="showPage('home')">Home</button>
+      <button onclick="showPage('contact')">Contact Us</button>
+      <button onclick="showPage('gallery')">Gallery</button>
+      <button onclick="showPage('documents')">Documents</button>
+    </div>
+
+    <!-- Main content area -->
+    <div class="main">
+      <div class="header">Space Research Center</div>
+      <div class="content" id="mainContent">
+        <h2>Welcome to the Space Research Center</h2>
+        <p>This is the main page. Use the sidebar or floating buttons to navigate.</p>
+      </div>
+
+      <!-- Floating Buttons -->
+      <button class="floating-btn top-right" onclick="showPage('about')">About Us</button>
+      <button class="floating-btn bottom-right" onclick="showPage('home')">Return to Home</button>
+    </div>
+  </div>
+
+  <script>
+    function showPage(page) {
+      const content = document.getElementById("mainContent");
+      switch (page) {
+        case "home":
+          content.innerHTML = `
+            <h2>Welcome to the Space Research Center</h2>
+            <p>This is the main page. Use the sidebar or floating buttons to navigate.</p>
+          `;
+          break;
+        case "contact":
+          content.innerHTML = `
+            <h2>Contact Us</h2>
+            <p>Email: info@spaceresearch.org</p>
+            <p>Phone: +123 456 7890</p>
+          `;
+          break;
+        case "gallery":
+          content.innerHTML = `
+            <h2>Gallery</h2>
+            <p>Explore images and videos from our space missions and research projects.</p>
+          `;
+          break;
+        case "documents":
+          content.innerHTML = `
+            <h2>Documents</h2>
+            <p>Find official research papers, technical documents, and mission reports here.</p>
+          `;
+          break;
+        case "about":
+          content.innerHTML = `
+            <h2>About Us</h2>
+            <p>We are committed to advancing space science and exploration. Our goal is to make groundbreaking discoveries and develop innovative technologies for the benefit of humanity.</p>
+          `;
+          break;
+        default:
+          content.innerHTML = `<h2>Page not found</h2>`;
+      }
+    }
+  </script>
+</body>
+</html>

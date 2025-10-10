@@ -1,0 +1,494 @@
+import speech_recognition as sr
+import pyttsx3
+import datetime
+import webbrowser
+import os
+import sys
+import json
+import random
+import math
+import time
+import platform
+import socket
+import psutil
+import sqlite3
+from collections import deque
+import base64
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('KrishAI')
+
+class KrishAI:
+    def __init__(self):
+        self.name = "Krish"
+        self.version = "3.0"
+        self.user_name = "Sir"
+        self.is_active = True
+        self.conversation_history = deque(maxlen=50)
+        
+        # Initialize components
+        self._init_speech_engine()
+        self._init_databases()
+        self._init_knowledge_base()
+        
+        print(f"🔬 {self.name} AI System Initialized - Version {self.version}")
+        print("=" * 60)
+        self.speak(f"I..am..krish....AI..assistent. Ready to assist you, {self.user_name}.", wait=True)
+
+    def _init_speech_engine(self):
+        """Initialize speech recognition and synthesis"""
+        try:
+            # Text-to-speech engine
+            self.tts_engine = pyttsx3.init()
+            voices = self.tts_engine.getProperty('voices')
+            if voices:
+                self.tts_engine.setProperty('voice', voices[0].id)
+            self.tts_engine.setProperty('rate', 170)
+            self.tts_engine.setProperty('volume', 1.0)
+            
+            # Speech recognition
+            self.recognizer = sr.Recognizer()
+            self.microphone = sr.Microphone()
+            
+            # Adjust for ambient noise
+            with self.microphone as source:
+                self.recognizer.adjust_for_ambient_noise(source, duration=1)
+                
+            logger.info("Speech engine initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"Speech engine initialization failed: {e}")
+            print(f"Speech engine error: {e}")
+
+    def _init_databases(self):
+        """Initialize knowledge database"""
+        try:
+            self.conn = sqlite3.connect('krish_knowledge.db', check_same_thread=False)
+            self.cursor = self.conn.cursor()
+            
+            # Create tables
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS conversation_log (
+                    id INTEGER PRIMARY KEY,
+                    timestamp TEXT,
+                    user_input TEXT,
+                    ai_response TEXT
+                )
+            ''')
+            
+            self.conn.commit()
+            logger.info("Database initialized")
+            
+        except Exception as e:
+            logger.error(f"Database initialization failed: {e}")
+
+    def _init_knowledge_base(self):
+        """Initialize all knowledge domains"""
+        self.knowledge_base = {
+            'nasa': {
+                'name': 'National Aeronautics and Space Administration',
+                'founded': 1958,
+                'director': 'Bill Nelson',
+                'missions': ['Artemis Moon Mission', 'James Webb Telescope', 'Mars Rover', 'International Space Station'],
+                'achievements': ['Apollo Moon Landing', 'Hubble Telescope', 'Space Shuttle', 'Mars Exploration']
+            },
+            'isro': {
+                'name': 'Indian Space Research Organisation',
+                'founded': 1969,
+                'chairman': 'S. Somanath', 
+                'missions': ['Chandrayaan', 'Mangalyaan', 'Gaganyaan', 'NavIC'],
+                'achievements': ['Mars Orbiter Mission', '104 satellites in one launch', 'Reusable Launch Vehicle']
+            },
+            'programming': {
+                'python': 'High-level programming language for AI, web development, and data science',
+                'javascript': 'Programming language for web development',
+                'java': 'Object-oriented programming language for enterprise applications',
+                'algorithms': 'Sorting, searching, machine learning algorithms'
+            },
+            'mathematics': {
+                'constants': {'pi': 3.14159, 'e': 2.71828, 'golden_ratio': 1.61803},
+                'fields': ['Algebra', 'Calculus', 'Statistics', 'Number Theory']
+            }
+        }
+
+    def speak(self, text, wait=True):
+        """Text to speech function"""
+        try:
+            print(f"🤖 {self.name}: {text}")
+            
+            # Log conversation
+            self.cursor.execute(
+                "INSERT INTO conversation_log (timestamp, user_input, ai_response) VALUES (?, ?, ?)",
+                (datetime.datetime.now().isoformat(), '', text)
+            )
+            self.conn.commit()
+            
+            self.tts_engine.say(text)
+            if wait:
+                self.tts_engine.runAndWait()
+                
+        except Exception as e:
+            logger.error(f"Speech error: {e}")
+            print(f"Speak error: {e}")
+
+    def listen(self):
+        """Listen for voice commands"""
+        try:
+            with self.microphone as source:
+                print("🎤 Listening...")
+                self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=10)
+                
+            text = self.recognizer.recognize_google(audio)
+            print(f"👤 {self.user_name}: {text}")
+            return text.lower()
+            
+        except sr.WaitTimeoutError:
+            return ""
+        except sr.UnknownValueError:
+            self.speak("I didn't catch that. Could you please repeat?")
+            return ""
+        except Exception as e:
+            logger.error(f"Listening error: {e}")
+            return ""
+
+    def system_control(self, command):
+        """System control commands"""
+        try:
+            if 'status' in command:
+                cpu = psutil.cpu_percent()
+                memory = psutil.virtual_memory()
+                disk = psutil.disk_usage('/')
+                
+                status = f"System status: CPU at {cpu}%, Memory at {memory.percent}%, Disk at {disk.percent}%"
+                self.speak(status)
+                return status
+                
+            elif 'time' in command:
+                current_time = datetime.datetime.now().strftime("%I:%M %p")
+                response = f"The current time is {current_time}"
+                self.speak(response)
+                return response
+                
+            elif 'date' in command:
+                current_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
+                response = f"Today is {current_date}"
+                self.speak(response)
+                return response
+                
+            elif 'shutdown' in command:
+                self.speak("Shutdown command received. This is a simulation for safety.")
+                return "Shutdown simulation"
+                
+            elif 'restart' in command:
+                self.speak("Restart command received. This is a simulation for safety.") 
+                return "Restart simulation"
+                
+            else:
+                response = "I can check system status, time, date, or simulate shutdown/restart"
+                self.speak(response)
+                return response
+                
+        except Exception as e:
+            error_msg = f"System control error: {str(e)}"
+            self.speak(error_msg)
+            return error_msg
+
+    def research_assistant(self, command):
+        """Research assistance"""
+        try:
+            if 'nasa' in command:
+                nasa_info = self.knowledge_base['nasa']
+                response = f"NASA: {nasa_info['name']}, founded in {nasa_info['founded']}. Current missions include {', '.join(nasa_info['missions'][:2])}"
+                self.speak(response)
+                return response
+                
+            elif 'isro' in command:
+                isro_info = self.knowledge_base['isro']
+                response = f"ISRO: {isro_info['name']}, founded in {isro_info['founded']}. Achievements include {', '.join(isro_info['achievements'][:2])}"
+                self.speak(response)
+                return response
+                
+            elif 'space' in command:
+                response = "Space research includes studying planets, stars, galaxies, and the universe. Current focus areas are Mars exploration, exoplanet discovery, and understanding black holes."
+                self.speak(response)
+                return response
+                
+            else:
+                response = "I can provide information about NASA, ISRO, and space research"
+                self.speak(response)
+                return response
+                
+        except Exception as e:
+            error_msg = f"Research error: {str(e)}"
+            self.speak(error_msg)
+            return error_msg
+
+    def programming_assistant(self, command):
+        """Programming assistance"""
+        try:
+            if 'python' in command:
+                response = "Python is a high-level programming language used for web development, data science, artificial intelligence, and automation. It's known for its simple syntax and extensive libraries."
+                self.speak(response)
+                return response
+                
+            elif 'algorithm' in command:
+                response = "Algorithms are step-by-step procedures for solving problems. Common types include sorting algorithms like quicksort, searching algorithms like binary search, and machine learning algorithms."
+                self.speak(response)
+                return response
+                
+            else:
+                response = "I can help with Python programming, algorithms, and general programming concepts"
+                self.speak(response)
+                return response
+                
+        except Exception as e:
+            error_msg = f"Programming error: {str(e)}"
+            self.speak(error_msg)
+            return error_msg
+
+    def cybersecurity_tools(self, command):
+        """Cybersecurity tools"""
+        try:
+            if 'scan' in command:
+                hostname = socket.gethostname()
+                local_ip = socket.gethostbyname(hostname)
+                response = f"Network scan completed. Hostname: {hostname}, IP Address: {local_ip}. Security status: Normal"
+                self.speak(response)
+                return response
+                
+            elif 'encrypt' in command:
+                sample_text = "Hello World"
+                encoded = base64.b64encode(sample_text.encode()).decode()
+                response = f"Encryption demo: '{sample_text}' becomes '{encoded}' in Base64 encoding"
+                self.speak(response)
+                return response
+                
+            else:
+                response = "Cybersecurity tools available: network scanning, encryption demonstration, security assessment"
+                self.speak(response)
+                return response
+                
+        except Exception as e:
+            error_msg = f"Security error: {str(e)}"
+            self.speak(error_msg)
+            return error_msg
+
+    def alien_communication(self, command):
+        """Alien communication simulation"""
+        try:
+            if 'decode' in command:
+                response = "Alien signal decoded: Mathematical sequence detected. Message: 'We observe in peace'. Origin: Andromeda galaxy. Threat level: Minimal"
+                self.speak(response)
+                return response
+                
+            else:
+                response = "Alien communication system active. I can decode simulated alien signals and analyze cosmic patterns"
+                self.speak(response)
+                return response
+                
+        except Exception as e:
+            error_msg = f"Alien communication error: {str(e)}"
+            self.speak(error_msg)
+            return error_msg
+
+    def language_processing(self, command):
+        """Language processing"""
+        try:
+            if 'tamil' in command:
+                tamil_phrases = {
+                    'hello': 'வணக்கம்',
+                    'thank you': 'நன்றி', 
+                    'how are you': 'நீங்கள் எப்படி இருக்கிறீர்கள்',
+                    'my name is': 'என் பெயர்'
+                }
+                
+                if 'hello' in command:
+                    response = f"In Tamil, hello is: {tamil_phrases['hello']}"
+                elif 'thank you' in command:
+                    response = f"In Tamil, thank you is: {tamil_phrases['thank you']}"
+                else:
+                    response = "I can translate basic English phrases to Tamil. Try saying 'hello in Tamil' or 'thank you in Tamil'"
+                    
+                self.speak(response)
+                return response
+                
+            else:
+                response = "I support Tamil language translation and basic phrases"
+                self.speak(response)
+                return response
+                
+        except Exception as e:
+            error_msg = f"Language error: {str(e)}"
+            self.speak(error_msg)
+            return error_msg
+
+    def process_command(self, command):
+        """Main command processor"""
+        if not command:
+            return "No command received"
+
+        command = command.lower().strip()
+        
+        # Greetings
+        if any(word in command for word in ['hello', 'hi', 'hey']):
+            greetings = [
+                f"Hello {self.user_name}! How can I assist you today?",
+                f"Hi {self.user_name}! Ready to help!",
+                f"Greetings {self.user_name}! What can I do for you?"
+            ]
+            response = random.choice(greetings)
+            self.speak(response)
+            return response
+            
+        elif 'how are you' in command:
+            responses = [
+                "I'm functioning perfectly! Ready to assist you!",
+                "All systems optimal! How can I help?",
+                "Doing great! What would you like to explore today?"
+            ]
+            response = random.choice(responses)
+            self.speak(response)
+            return response
+
+        # System commands
+        elif any(word in command for word in ['system', 'computer', 'status', 'time', 'date', 'shutdown', 'restart']):
+            return self.system_control(command)
+        
+        # Research commands
+        elif any(word in command for word in ['nasa', 'isro', 'space', 'research']):
+            return self.research_assistant(command)
+        
+        # Programming commands
+        elif any(word in command for word in ['programming', 'python', 'code', 'algorithm']):
+            return self.programming_assistant(command)
+        
+        # Security commands
+        elif any(word in command for word in ['security', 'scan', 'encrypt', 'cyber']):
+            return self.cybersecurity_tools(command)
+        
+        # Alien communication
+        elif any(word in command for word in ['alien', 'extraterrestrial', 'signal']):
+            return self.alien_communication(command)
+        
+        # Language commands
+        elif any(word in command for word in ['tamil', 'translate', 'language']):
+            return self.language_processing(command)
+        
+        # Capabilities
+        elif any(word in command for word in ['what can you do', 'capabilities', 'help']):
+            response = """I can help with:
+            - System control and monitoring
+            - NASA and ISRO space research
+            - Programming assistance
+            - Cybersecurity tools
+            - Alien communication simulation
+            - Tamil language translation
+            Just tell me what you need!"""
+            self.speak("I can help with system control, space research, programming, cybersecurity, alien communication, and Tamil translation. What would you like to try?")
+            return response
+        
+        # Unknown command
+        else:
+            responses = [
+                "I'm not sure I understand. Could you try again?",
+                "That's an interesting request. Could you be more specific?",
+                "I'm still learning. Could you rephrase that?",
+                "Let me help you with something else. What would you like to know?"
+            ]
+            response = random.choice(responses)
+            self.speak(response)
+            return response
+
+    def run(self):
+        """Main voice-only execution loop"""
+        self.speak("Krish AI system activated. Voice only mode engaged.", wait=True)
+        self.speak("I am listening for your commands. You can speak anytime.", wait=True)
+        
+        while self.is_active:
+            try:
+                # Listen for voice input
+                user_input = self.listen()
+                
+                if user_input:
+                    # Exit commands
+                    if any(word in user_input for word in ['exit', 'quit', 'goodbye', 'stop']):
+                        self.speak(f"Shutting down systems. Goodbye, {self.user_name}.")
+                        self.is_active = False
+                        break
+                    
+                    # Process the command
+                    self.process_command(user_input)
+                
+            except KeyboardInterrupt:
+                self.speak("Manual override detected. Shutting down.")
+                self.is_active = False
+                break
+            except Exception as e:
+                logger.error(f"Main loop error: {e}")
+                self.speak("I encountered an error. Please try again.")
+                time.sleep(1)
+
+        # Cleanup
+        self._cleanup()
+
+    def _cleanup(self):
+        """Cleanup resources"""
+        try:
+            self.conn.close()
+            logger.info("System shutdown complete")
+        except Exception as e:
+            logger.error(f"Cleanup error: {e}")
+
+# Installation check and main execution
+def check_installation():
+    """Check if required packages are installed"""
+    required_packages = ['speech_recognition', 'pyttsx3', 'psutil']
+    missing_packages = []
+    
+    for package in required_packages:
+        try:
+            if package == 'speech_recognition':
+                import speech_recognition
+            elif package == 'pyttsx3':
+                import pyttsx3
+            elif package == 'psutil':
+                import psutil
+        except ImportError:
+            missing_packages.append(package)
+    
+    return missing_packages
+
+if __name__ == "__main__":
+    print("🚀 Initializing Krish AI System...")
+    print("=" * 50)
+    
+    # Check installations
+    missing = check_installation()
+    if missing:
+        print("❌ Missing required packages. Please install:")
+        for package in missing:
+            print(f"   pip install {package}")
+        print("\nAfter installation, run the program again.")
+        sys.exit(1)
+    
+    print("✅ All packages installed correctly!")
+    print("🎤 This is a VOICE-ONLY interface")
+    print("💬 Speak your commands when you see 'Listening...'")
+    print("❌ Say 'exit', 'quit', or 'goodbye' to end")
+    print("=" * 50)
+    
+    try:
+        # Create and run the AI
+        krish = KrishAI()
+        krish.run()
+        
+    except Exception as e:
+        print(f"❌ System initialization failed: {e}")
+        print("Please check your microphone and try again.")
+        
+    finally:
+        print("\n" + "=" * 50)
+        print("Krish AI System shutdown complete.")

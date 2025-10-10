@@ -1,0 +1,394 @@
+import java.util.*;
+import java.text.SimpleDateFormat;
+
+class Product {
+    private String productId;
+    private String name;
+    private double price;
+    private int quantity;
+    private String category;
+
+    public Product(String productId, String name, double price, int quantity, String category) {
+        this.productId = productId;
+        this.name = name;
+        this.price = price;
+        this.quantity = quantity;
+        this.category = category;
+    }
+
+    public String getProductId() { return productId; }
+    public String getName() { return name; }
+    public double getPrice() { return price; }
+    public int getQuantity() { return quantity; }
+    public String getCategory() { return category; }
+
+    public void setPrice(double price) { this.price = price; }
+    public void setQuantity(int quantity) { this.quantity = quantity; }
+
+    @Override
+    public String toString() {
+        return String.format("%-8s %-20s %-10.2f %-8d %-15s",
+                productId, name, price, quantity, category);
+    }
+}
+
+class CartItem {
+    private Product product;
+    private int quantity;
+
+    public CartItem(Product product, int quantity) {
+        this.product = product;
+        this.quantity = quantity;
+    }
+
+    public Product getProduct() { return product; }
+    public int getQuantity() { return quantity; }
+    public void setQuantity(int quantity) { this.quantity = quantity; }
+
+    public double getTotalPrice() {
+        return product.getPrice() * quantity;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%-20s %-10.2f %-8d %-10.2f",
+                product.getName(), product.getPrice(), quantity, getTotalPrice());
+    }
+}
+
+class Bill {
+    private static int billCounter = 1;
+    private String billId;
+    private Date date;
+    private List<CartItem> items;
+    private double totalAmount;
+    private double discount;
+    private double finalAmount;
+
+    public Bill() {
+        this.billId = "BILL-" + billCounter++;
+        this.date = new Date();
+        this.items = new ArrayList<>();
+    }
+
+    public void addItem(CartItem item) {
+        items.add(item);
+        calculateTotal();
+    }
+
+    private void calculateTotal() {
+        totalAmount = 0;
+        for (CartItem item : items) {
+            totalAmount += item.getTotalPrice();
+        }
+
+        // Apply discount rules
+        if (totalAmount > 1000) {
+            discount = totalAmount * 0.10;
+        } else if (totalAmount > 500) {
+            discount = totalAmount * 0.05;
+        } else {
+            discount = 0;
+        }
+
+        finalAmount = totalAmount - discount;
+    }
+
+    public void generateBill() {
+        System.out.println("\n" + "=".repeat(80));
+        System.out.println("                      SUPERMARKET BILL");
+        System.out.println("=".repeat(80));
+        System.out.println("Bill ID: " + billId);
+        System.out.println("Date: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date));
+        System.out.println("-".repeat(80));
+        System.out.printf("%-20s %-10s %-8s %-10s\n", "Item Name", "Price", "Qty", "Total");
+        System.out.println("-".repeat(80));
+
+        for (CartItem item : items) {
+            System.out.println(item);
+        }
+
+        System.out.println("-".repeat(80));
+        System.out.printf("%-40s: %10.2f\n", "Total Amount", totalAmount);
+        System.out.printf("%-40s: %10.2f\n", "Discount", discount);
+        System.out.printf("%-40s: %10.2f\n", "Final Amount", finalAmount);
+        System.out.println("=".repeat(80));
+    }
+}
+
+class Inventory {
+    private List<Product> products;
+
+    public Inventory() {
+        this.products = new ArrayList<>();
+        initializeProducts();
+    }
+
+    private void initializeProducts() {
+        products.add(new Product("P001", "Rice", 45.50, 100, "Grocery"));
+        products.add(new Product("P002", "Wheat Flour", 30.00, 80, "Grocery"));
+        products.add(new Product("P003", "Milk", 25.00, 50, "Dairy"));
+        products.add(new Product("P004", "Eggs", 60.00, 30, "Dairy"));
+        products.add(new Product("P005", "Apple", 80.00, 40, "Fruits"));
+        products.add(new Product("P006", "Banana", 40.00, 60, "Fruits"));
+        products.add(new Product("P007", "Soap", 25.00, 70, "Personal Care"));
+        products.add(new Product("P008", "Shampoo", 120.00, 25, "Personal Care"));
+        products.add(new Product("P009", "Bread", 35.00, 40, "Bakery"));
+        products.add(new Product("P010", "Biscuits", 20.00, 100, "Snacks"));
+    }
+
+    public Product findProduct(String productId) {
+        for (Product product : products) {
+            if (product.getProductId().equals(productId)) {
+                return product;
+            }
+        }
+        return null;
+    }
+
+    public void displayProducts() {
+        System.out.println("\n" + "=".repeat(80));
+        System.out.println("                          PRODUCT INVENTORY");
+        System.out.println("=".repeat(80));
+        System.out.printf("%-8s %-20s %-10s %-8s %-15s\n",
+                "ID", "Name", "Price", "Qty", "Category");
+        System.out.println("-".repeat(80));
+
+        for (Product product : products) {
+            System.out.println(product);
+        }
+        System.out.println("=".repeat(80));
+    }
+}
+
+class ShoppingCart {
+    private List<CartItem> items;
+    private Inventory inventory;
+
+    public ShoppingCart(Inventory inventory) {
+        this.items = new ArrayList<>();
+        this.inventory = inventory;
+    }
+
+    public boolean addItem(String productId, int quantity) {
+        Product product = inventory.findProduct(productId);
+
+        if (product != null) {
+            if (product.getQuantity() >= quantity) {
+                // Check if item already exists in cart
+                CartItem existingItem = null;
+                for (CartItem item : items) {
+                    if (item.getProduct().getProductId().equals(productId)) {
+                        existingItem = item;
+                        break;
+                    }
+                }
+
+                if (existingItem != null) {
+                    existingItem.setQuantity(existingItem.getQuantity() + quantity);
+                } else {
+                    items.add(new CartItem(product, quantity));
+                }
+
+                product.setQuantity(product.getQuantity() - quantity);
+                return true;
+            } else {
+                System.out.println("Insufficient quantity in inventory!");
+                return false;
+            }
+        } else {
+            System.out.println("Product not found!");
+            return false;
+        }
+    }
+
+    public boolean removeItem(String productId, int quantity) {
+        CartItem itemToRemove = null;
+        for (CartItem item : items) {
+            if (item.getProduct().getProductId().equals(productId)) {
+                itemToRemove = item;
+                break;
+            }
+        }
+
+        if (itemToRemove != null) {
+            if (itemToRemove.getQuantity() <= quantity) {
+                inventory.findProduct(productId).setQuantity(
+                        inventory.findProduct(productId).getQuantity() + itemToRemove.getQuantity()
+                );
+                items.remove(itemToRemove);
+            } else {
+                itemToRemove.setQuantity(itemToRemove.getQuantity() - quantity);
+                inventory.findProduct(productId).setQuantity(
+                        inventory.findProduct(productId).getQuantity() + quantity
+                );
+            }
+            return true;
+        } else {
+            System.out.println("Item not found in cart!");
+            return false;
+        }
+    }
+
+    public void displayCart() {
+        if (items.isEmpty()) {
+            System.out.println("\nYour cart is empty!");
+            return;
+        }
+
+        System.out.println("\n" + "=".repeat(60));
+        System.out.println("                      SHOPPING CART");
+        System.out.println("=".repeat(60));
+        System.out.printf("%-20s %-10s %-8s %-10s\n", "Item Name", "Price", "Qty", "Total");
+        System.out.println("-".repeat(60));
+
+        double total = 0;
+        for (CartItem item : items) {
+            System.out.println(item);
+            total += item.getTotalPrice();
+        }
+
+        System.out.println("-".repeat(60));
+        System.out.printf("%-40s: %10.2f\n", "Cart Total", total);
+        System.out.println("=".repeat(60));
+    }
+
+    public Bill checkout() {
+        Bill bill = new Bill();
+        for (CartItem item : items) {
+            bill.addItem(item);
+        }
+        items.clear();
+        return bill;
+    }
+
+    public boolean isEmpty() {
+        return items.isEmpty();
+    }
+}
+
+public class SupermarketBillingSystem {
+    private Inventory inventory;
+    private ShoppingCart cart;
+    private Scanner scanner;
+
+    public SupermarketBillingSystem() {
+        this.inventory = new Inventory();
+        this.cart = new ShoppingCart(inventory);
+        this.scanner = new Scanner(System.in);
+    }
+
+    public void start() {
+        System.out.println("=========================================");
+        System.out.println("     WELCOME TO SUPERMARKET BILLING SYSTEM");
+        System.out.println("=========================================");
+
+        while (true) {
+            displayMenu();
+            int choice = getIntegerInput("Enter your choice: ");
+
+            switch (choice) {
+                case 1:
+                    inventory.displayProducts();
+                    break;
+                case 2:
+                    addToCart();
+                    break;
+                case 3:
+                    removeFromCart();
+                    break;
+                case 4:
+                    cart.displayCart();
+                    break;
+                case 5:
+                    checkout();
+                    break;
+                case 6:
+                    System.out.println("Thank you for shopping with us!");
+                    scanner.close();
+                    return;
+                default:
+                    System.out.println("Invalid choice! Please try again.");
+            }
+        }
+    }
+
+    private void displayMenu() {
+        System.out.println("\n--- MAIN MENU ---");
+        System.out.println("1. View Products");
+        System.out.println("2. Add to Cart");
+        System.out.println("3. Remove from Cart");
+        System.out.println("4. View Cart");
+        System.out.println("5. Checkout");
+        System.out.println("6. Exit");
+    }
+
+    private void addToCart() {
+        inventory.displayProducts();
+        System.out.print("Enter Product ID to add: ");
+        String productId = scanner.nextLine();
+        int quantity = getIntegerInput("Enter quantity: ");
+
+        if (quantity > 0) {
+            if (cart.addItem(productId, quantity)) {
+                System.out.println("Product added to cart successfully!");
+            }
+        } else {
+            System.out.println("Quantity must be positive!");
+        }
+    }
+
+    private void removeFromCart() {
+        if (cart.isEmpty()) {
+            System.out.println("Cart is empty!");
+            return;
+        }
+
+        cart.displayCart();
+        System.out.print("Enter Product ID to remove: ");
+        String productId = scanner.nextLine();
+        int quantity = getIntegerInput("Enter quantity to remove: ");
+
+        if (quantity > 0) {
+            if (cart.removeItem(productId, quantity)) {
+                System.out.println("Product removed from cart successfully!");
+            }
+        } else {
+            System.out.println("Quantity must be positive!");
+        }
+    }
+
+    private void checkout() {
+        if (cart.isEmpty()) {
+            System.out.println("Cart is empty! Add some items before checkout.");
+            return;
+        }
+
+        cart.displayCart();
+        System.out.print("Proceed to checkout? (yes/no): ");
+        String confirm = scanner.nextLine();
+
+        if (confirm.equalsIgnoreCase("yes")) {
+            Bill bill = cart.checkout();
+            bill.generateBill();
+        } else {
+            System.out.println("Checkout cancelled.");
+        }
+    }
+
+    private int getIntegerInput(String message) {
+        while (true) {
+            try {
+                System.out.print(message);
+                return Integer.parseInt(scanner.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input! Please enter a valid number.");
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        SupermarketBillingSystem system = new SupermarketBillingSystem();
+        system.start();
+    }
+}

@@ -1,0 +1,137 @@
+# Cell 1: Imports & Notebook Configuration
+%matplotlib inline
+import os
+import zipfile
+import librosa
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+
+sns.set_style('whitegrid')
+plt.rcParams['figure.figsize'] = (8, 5)
+
+  
+# Cell 2: Unzip the RAVDESS Archive
+ZIP_PATH    = r"C:\Users\Arun\Downloads\Audio_Song_Actors_01-24.zip"
+EXTRACT_DIR = "ravdess/"
+
+# Only unzip once
+if not os.path.isdir(EXTRACT_DIR):
+    with zipfile.ZipFile(ZIP_PATH, 'r') as z:
+        z.extractall(EXTRACT_DIR)
+    print("Extraction completed.")
+else:
+    print("Archive already extracted.")
+
+
+# Cell 3: Feature Extraction Function
+def extract_features(file_path, duration=3, offset=0.5, n_mfcc=40):
+    """
+    Load an audio file and return the mean MFCCs across time.
+    """
+    audio, sr = librosa.load(file_path, duration=duration, offset=offset)
+    mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc)
+    return np.mean(mfccs.T, axis=0)
+
+
+# Cell 4: Build Dataset (Features + Labels)
+# We'll process only Actor_01 here; remove the [1] slice to use all actors.
+emotion_dict = {
+    '01': 'neutral',  '02': 'calm',    '03': 'happy',   '04': 'sad',
+    '05': 'angry',    '06': 'fearful','07': 'disgust','08': 'surprised'
+}
+
+features = []
+labels   = []
+
+# Change this slice to None or [ ] if you want Actors 01–24
+actor_folders = sorted(
+    [f for f in os.listdir(EXTRACT_DIR) if f.startswith("Actor_")][:1]
+)
+
+for actor in actor_folders:
+    actor_path = os.path.join(EXTRACT_DIR, actor)
+    for fname in os.listdir(actor_path):
+        if not fname.lower().endswith('.wav'):
+            continue
+
+        # Filename format: 03-01-02-01-02-01-01.wav etc.
+        parts = fname.split('-')
+        if len(parts) < 3:
+            continue
+
+        emotion_code = parts[2]
+        label = emotion_dict.get(emotion_code)
+        if label is None:
+            continue
+
+        file_path = os.path.join(actor_path, fname)
+        try:
+            mfcc = extract_features(file_path)
+            features.append(mfcc)
+            labels.append(label)
+        except Exception as e:
+            print(f"Error processing {fname}: {e}")
+
+# Convert to NumPy arrays
+X = np.array(features)
+y = np.array(labels)
+
+print("Feature matrix shape:", X.shape)
+print("Labels vector shape:", y.shape)
+print("Unique labels:", np.unique(y))
+
+
+
+# Cell 6: Train Random Forest Classifier
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf.fit(X_train, y_train)
+
+
+# Cell 7: Evaluation – Accuracy & Classification Report
+y_pred = rf.predict(X_test)
+
+print(f"Test Accuracy: {accuracy_score(y_test, y_pred):.3f}\n")
+print("Classification Report:")
+print(classification_report(y_test, y_pred, target_names=le.classes_))
+
+
+# Cell 8: Confusion Matrix Visualization
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(8, 6))
+sns.heatmap(
+    cm,
+    annot=True,
+    fmt='d',
+    cmap='Blues',
+    xticklabels=le.classes_,
+    yticklabels=le.classes_
+)
+plt.title("Confusion Matrix")
+plt.xlabel("Predicted Label")
+plt.ylabel("True Label")
+plt.tight_layout()
+plt.show()
+
+
+# Cell 9: Optional – Feature Importances
+importances = rf.feature_importances_
+indices     = np.argsort(importances)[::-1]
+
+plt.figure(figsize=(10, 6))
+sns.barplot(
+    x=importances[indices][:10],
+    y=[f"MFCC_{i+1}" for i in indices[:10]],
+    palette='magma'
+)
+plt.title("Top 10 MFCC Feature Importances")
+plt.xlabel("Relative Importance")
+plt.tight_layout()
+plt.show()
+

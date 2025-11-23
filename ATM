@@ -1,0 +1,81 @@
+import java.util.*;
+
+public class ATM {
+
+    // Simple account class
+    static class Account {
+        String accountNumber;
+        String pin;
+        double balance;
+
+        Account(String accountNumber, String pin, double balance) {
+            this.accountNumber = accountNumber;
+            this.pin = pin;
+            this.balance = balance;
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner input = new Scanner(System.in);
+
+        // Create a sample account
+        Account acc = new Account("1234", "1111", 1000.0);
+
+        System.out.println("===== ATM SIMULATION =====");
+
+        // Login
+        System.out.print("Enter Account Number: ");
+        String accNum = input.nextLine();
+
+        System.out.print("Enter PIN: ");
+        String pin = input.nextLine();
+
+        if (!acc.accountNumber.equals(accNum) || !acc.pin.equals(pin)) {
+            System.out.println("Incorrect account number or PIN!");
+            return;
+        }
+
+        // Main menu
+        while (true) {
+            System.out.println("\n===== MENU =====");
+            System.out.println("1. Check Balance");
+            System.out.println("2. Deposit");
+            System.out.println("3. Withdraw");
+            System.out.println("4. Exit");
+            System.out.print("Select option: ");
+
+            int option = input.nextInt();
+
+            switch (option) {
+                case 1:
+                    System.out.println("Current Balance: $" + acc.balance);
+                    break;
+
+                case 2:
+                    System.out.print("Enter amount to deposit: ");
+                    double dep = input.nextDouble();
+                    acc.balance += dep;
+                    System.out.println("Deposit successful. New balance: $" + acc.balance);
+                    break;
+
+                case 3:
+                    System.out.print("Enter amount to withdraw: ");
+                    double wd = input.nextDouble();
+                    if (wd > acc.balance) {
+                        System.out.println("Insufficient funds!");
+                    } else {
+                        acc.balance -= wd;
+                        System.out.println("Withdrawal successful. New balance: $" + acc.balance);
+                    }
+                    break;
+
+                case 4:
+                    System.out.println("Thank you for using the ATM!");
+                    return;
+
+                default:
+                    System.out.println("Invalid option.");
+            }
+        }
+    }
+}
